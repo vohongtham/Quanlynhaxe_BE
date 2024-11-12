@@ -1,60 +1,198 @@
 from app.database import db
-from app.model import ChiTietRaVao, Xe
+from app.model import ChiTietRaVao, Xe, BaiXe, Sinhvien, LoaiXe
 from app.app_ma import ChiTietRaVaoSchema
 from app.utils.utils import generate
 from flask import request
 from datetime import datetime
 from sqlalchemy import func
+from app.services.email_service import send_email  # Import hàm send_email từ service # Import hàm send_email
 
 ct_rv_schema = ChiTietRaVaoSchema()
 ct_rvs_schema = ChiTietRaVaoSchema(many=True)
 
+# def add_chitiet_ravao_service(request):
+#     try:
+#         data = request.get_json()
+#         print("Received data:", data)  # Log the incoming data
+#         BienSoXe = data.get('BienSoXe')
+#         Ma_BaiXe = data.get('Ma_BaiXe')
+#         AnhBienSo = data.get('AnhBienSo')
+
+#         if not BienSoXe or not Ma_BaiXe:
+#             return {"error": "Thiếu trường bắt buộc: BienSoXe và Ma_BaiXe là cần thiết."}, 400
+
+#         xe_record = Xe.query.filter_by(BienSoXe=BienSoXe).first()
+#         if not xe_record:
+#             return {"error": "Biển số xe không khớp với bất kỳ xe nào trong hệ thống."}, 400
+
+#         Mssv = xe_record.Mssv
+#         sinh_vien_record = Sinhvien.query.filter_by(Mssv=Mssv).first()
+#         if not sinh_vien_record:
+#             return {"error": "MSSV không khớp với bất kỳ sinh viên nào trong hệ thống."}, 400
+
+#         email_recipient = sinh_vien_record.Email
+#         existing_entry = ChiTietRaVao.query.filter_by(Mssv=Mssv, BienSoXe=BienSoXe, TG_Ra=None).first()
+
+#         bai_xe = BaiXe.query.filter_by(Ma_BaiXe=Ma_BaiXe).first()
+#         if not bai_xe:
+#             return {"error": "Bãi xe không tìm thấy."}, 400
+
+#         if existing_entry:
+#             if existing_entry.Ma_BaiXe != Ma_BaiXe:
+#                 return {"error": "Mã bãi xe không khớp với mã đã sử dụng khi vào."}, 400
+            
+#             # Set exit time
+#             existing_entry.TG_Ra = datetime.now()
+
+#             # Get the price based solely on the vehicle type
+#             loai_xe_record = LoaiXe.query.filter_by(LoaiXe=xe_record.LoaiXe).first()
+#             if not loai_xe_record:
+#                 return {"error": "Loại xe không tìm thấy."}, 400
+            
+#             # Use the price from LoaiXe as the exit fee
+#             existing_entry.Gia = loai_xe_record.Gia  # Use the price from LoaiXe directly
+
+#             bai_xe.So_ViTriDaDung = max(bai_xe.So_ViTriDaDung - 1, 0)
+#             db.session.commit()
+
+#             return {
+#                 "message": "Thời gian ra (TG_Ra) đã được ghi nhận thành công!",
+#                 "status": "exit",
+#                 "Ma_CT": existing_entry.Ma_CT,
+#                 "Gia": existing_entry.Gia,
+#                 "TG_Vao": existing_entry.TG_Vao,
+#                 "TG_Ra": existing_entry.TG_Ra,
+#                 "So_ViTriTrong": bai_xe.So_ViTriTong - bai_xe.So_ViTriDaDung
+#             }, 200
+#         else:
+#             # Retrieve the vehicle type from xe_record
+#             loai_xe = xe_record.LoaiXe  # Assuming LoaiXe is an attribute of xe_record
+
+#             new_ct_ravao = ChiTietRaVao(
+#                 Ma_CT=generate_unique_ma_ct(),
+#                 Mssv=Mssv,
+#                 BienSoXe=BienSoXe,
+#                 Ma_BaiXe=Ma_BaiXe,
+#                 TG_Vao=datetime.now(),
+#                 TG_Ra=None,
+#                 Gia=0,  # Initially set to 0
+#                 AnhBienSo=AnhBienSo,
+#                 LoaiXe=loai_xe  # Include LoaiXe
+#             )
+
+#             db.session.add(new_ct_ravao)
+#             bai_xe.So_ViTriDaDung += 1
+#             db.session.commit()
+
+#             send_email(email_recipient, new_ct_ravao.Ma_CT)
+
+#             return {
+#                 "message": "Thời gian vào (TG_Vao) đã được ghi nhận thành công và email đã được gửi!",
+#                 "status": "entry",
+#                 "Ma_CT": new_ct_ravao.Ma_CT,
+#                 "TG_Vao": new_ct_ravao.TG_Vao,
+#                 "So_ViTriTrong": bai_xe.So_ViTriTong - bai_xe.So_ViTriDaDung
+#             }, 201
+#     except Exception as e:
+#         db.session.rollback()
+#         return {"error": str(e)}, 400
+
 def add_chitiet_ravao_service(request):
     try:
-        # Retrieve data from the request
         data = request.get_json()
+        print("Received data:", data)
         BienSoXe = data.get('BienSoXe')
         Ma_BaiXe = data.get('Ma_BaiXe')
+        AnhBienSo = data.get('AnhBienSo')
+        Ma_CT_input = data.get('Ma_CT')  # Lấy Ma_CT từ yêu cầu (nếu có)
 
-        # Validate required fields
         if not BienSoXe or not Ma_BaiXe:
-            return {"error": "Missing required fields: BienSoXe and Ma_BaiXe are required."}, 400
+            return {"error": "Thiếu trường bắt buộc: BienSoXe và Ma_BaiXe là cần thiết."}, 400
 
-        # Retrieve Mssv from Xe table using BienSoXe
         xe_record = Xe.query.filter_by(BienSoXe=BienSoXe).first()
         if not xe_record:
-            return {"error": "BienSoXe does not match any vehicle in the system."}, 400
+            return {"error": "Biển số xe không khớp với bất kỳ xe nào trong hệ thống."}, 400
 
         Mssv = xe_record.Mssv
+        sinh_vien_record = Sinhvien.query.filter_by(Mssv=Mssv).first()
+        if not sinh_vien_record:
+            return {"error": "MSSV không khớp với bất kỳ sinh viên nào trong hệ thống."}, 400
 
-        # Check for an existing entry with TG_Ra as NULL for the same vehicle (indicating it's still in the parking lot)
+        # Kiểm tra xe đang ở trong bãi (TG_Ra = None)
         existing_entry = ChiTietRaVao.query.filter_by(Mssv=Mssv, BienSoXe=BienSoXe, TG_Ra=None).first()
-
         if existing_entry:
-            # Update TG_Ra only, leave TG_Vao unchanged
-            existing_entry.TG_Ra = datetime.now()  # Vehicle is exiting
-            existing_entry.Gia = 2000  # Fixed fee amount
+            # Nếu xe đang ở trong bãi nhưng không có Ma_CT, yêu cầu cung cấp Ma_CT để ra
+            if not Ma_CT_input:
+                return {
+                    "warn": "Vui lòng cung cấp mã thẻ xe để xác nhận xe ra.",
+                    "status": "need_Ma_CT"
+                }, 200  # Thay đổi từ 400 thành 200
+                
+            if existing_entry.Ma_BaiXe != Ma_BaiXe:
+                return {"error": "Mã bãi xe không khớp với mã đã sử dụng khi vào."}, 400
+            
+            # Nếu Ma_CT được cung cấp, kiểm tra tính hợp lệ của Ma_CT
+            if existing_entry.Ma_CT != Ma_CT_input:
+                return {
+                    # "error": "Mã thẻ xe không khớp.",
+                    "status": "Mã thẻ xe không khớp"
+                }, 200
+
+            # Xử lý xác nhận ra
+            existing_entry.TG_Ra = datetime.now()
+            loai_xe_record = LoaiXe.query.filter_by(LoaiXe=xe_record.LoaiXe).first()
+            if not loai_xe_record:
+                return {"error": "Loại xe không tìm thấy."}, 400
+
+            existing_entry.Gia = loai_xe_record.Gia
+            bai_xe = BaiXe.query.filter_by(Ma_BaiXe=Ma_BaiXe).first()
+            bai_xe.So_ViTriDaDung = max(bai_xe.So_ViTriDaDung - 1, 0)
             db.session.commit()
-            return {"message": "Exit time (TG_Ra) recorded successfully!", "Ma_CT": existing_entry.Ma_CT, "Gia": existing_entry.Gia}, 200
+
+            return {
+                "message": "Thời gian ra (TG_Ra) đã được ghi nhận thành công!",
+                "status": "exit",
+                "Ma_CT": existing_entry.Ma_CT,
+                "Gia": existing_entry.Gia,
+                "TG_Vao": existing_entry.TG_Vao,
+                "TG_Ra": existing_entry.TG_Ra,
+                "So_ViTriTrong": bai_xe.So_ViTriTong - bai_xe.So_ViTriDaDung
+            }, 200
+
         else:
-            # Vehicle is entering; create a new record with TG_Vao
+            # Nếu xe không ở trong bãi, xử lý ghi nhận xe vào
+            loai_xe = xe_record.LoaiXe
             new_ct_ravao = ChiTietRaVao(
-                Ma_CT=generate_unique_ma_ct(),  # Generate a unique Ma_CT
+                Ma_CT=generate_unique_ma_ct(),
                 Mssv=Mssv,
                 BienSoXe=BienSoXe,
                 Ma_BaiXe=Ma_BaiXe,
-                TG_Vao=datetime.now(),  # Record the entry time
-                TG_Ra=None,  # No exit time yet
-                Gia=0  # No fee at entry
+                TG_Vao=datetime.now(),
+                TG_Ra=None,
+                Gia=0,  # Giá ban đầu bằng 0
+                AnhBienSo=AnhBienSo,
+                LoaiXe=loai_xe
             )
 
             db.session.add(new_ct_ravao)
+            bai_xe = BaiXe.query.filter_by(Ma_BaiXe=Ma_BaiXe).first()
+            bai_xe.So_ViTriDaDung += 1
             db.session.commit()
-            return {"message": "Entry time (TG_Vao) recorded successfully!", "Ma_CT": new_ct_ravao.Ma_CT}, 201
+
+            send_email(sinh_vien_record.Email, new_ct_ravao.Ma_CT)
+
+            return {
+                "message": "Thời gian vào (TG_Vao) đã được ghi nhận thành công và email đã được gửi!",
+                "status": "entry",
+                "Ma_CT": new_ct_ravao.Ma_CT,
+                "TG_Vao": new_ct_ravao.TG_Vao,
+                "So_ViTriTrong": bai_xe.So_ViTriTong - bai_xe.So_ViTriDaDung
+            }, 201
+
     except Exception as e:
         db.session.rollback()
+        print(f"Error: {e}")  # Ghi log chi tiết lỗi
         return {"error": str(e)}, 400
-
 
 
 def generate_unique_ma_ct():
@@ -77,25 +215,50 @@ def get_all_chitiet_ravao_service():
     except Exception as e:
         return {"error": str(e)}, 400
 
-# Service: Get ChiTietRaVao by Ma_CT
-# def get_chitiet_ravao_by_id_service(Ma_CT):
+# def get_chitiet_ravao_by_criteria_service(Ma_CT=None, Mssv=None, BienSoXe=None, Ma_BaiXe=None, TG_Vao=None, TG_Ra=None, LoaiXe=None, AnhBienSo=None):
+#     """
+#     Service function to retrieve ChiTietRaVao records by various criteria such as Ma_CT, Mssv, BienSoXe, Ma_BaiXe, TG_Vao, TG_Ra, LoaiXe, and AnhBienSo.
+#     Supports partial matches and any combination of these criteria.
+#     Returns the list of ChiTietRaVao details in JSON format or an error message if no records are found.
+#     """
 #     try:
-#         # Query the database for ChiTietRaVao by Ma_CT
-#         chitiet_ravao = ChiTietRaVao.query.filter_by(Ma_CT=Ma_CT).first()
+#         # Build the query based on the provided criteria
+#         query = ChiTietRaVao.query
 
-#         # Check if the entry exists
-#         if not chitiet_ravao:
-#             return {"error": "ChiTietRaVao not found"}, 404
+#         if Ma_CT:
+#             query = query.filter_by(Ma_CT=Ma_CT)
+#         if Mssv:
+#             query = query.filter_by(Mssv=Mssv)
+#         if BienSoXe:
+#             query = query.filter(ChiTietRaVao.BienSoXe.ilike(f"%{BienSoXe}%"))
+#         if Ma_BaiXe:
+#             query = query.filter_by(Ma_BaiXe=Ma_BaiXe)
+#         if TG_Vao:
+#             query = query.filter(func.date(ChiTietRaVao.TG_Vao) == TG_Vao)
+#         if TG_Ra:
+#             query = query.filter(func.date(ChiTietRaVao.TG_Ra) == TG_Ra)
+#         if LoaiXe:
+#             query = query.filter(ChiTietRaVao.LoaiXe.ilike(f"%{LoaiXe}%"))
+#         if AnhBienSo:
+#             query = query.filter(AnhBienSo=AnhBienSo)
 
-#         # Serialize the result
-#         result = ct_rv_schema.dump(chitiet_ravao)
-#         return result, 200
+#         # Execute the query to find matching records
+#         chitiet_ravao_list = query.all()
+
+#         # Check if any records were found
+#         if not chitiet_ravao_list:
+#             return {"message": "No ChiTietRaVao records found matching the criteria"}, 404
+
+#         # Serialize the result data
+#         result = ct_rv_schema.dump(chitiet_ravao_list, many=True)
+#         return result, 200  # Return the serialized data and status code
 #     except Exception as e:
-#         return {"error": str(e)}, 400
+#         return {"error": str(e)}, 400  # Return an error message and status code if something goes wrong
 
-def get_chitiet_ravao_by_criteria_service(Ma_CT=None, Mssv=None, BienSoXe=None, Ma_BaiXe=None, TG_Vao=None, TG_Ra=None):
+
+def get_chitiet_ravao_by_criteria_service(Ma_CT=None, Mssv=None, BienSoXe=None, Ma_BaiXe=None, TG_Vao=None, TG_Ra=None, LoaiXe=None, AnhBienSo=None):
     """
-    Service function to retrieve ChiTietRaVao records by various criteria such as Ma_CT, Mssv, BienSoXe, Ma_BaiXe, TG_Vao, and TG_Ra.
+    Service function to retrieve ChiTietRaVao records by various criteria such as Ma_CT, Mssv, BienSoXe, Ma_BaiXe, TG_Vao, TG_Ra, LoaiXe, and AnhBienSo.
     Supports partial matches and any combination of these criteria.
     Returns the list of ChiTietRaVao details in JSON format or an error message if no records are found.
     """
@@ -111,10 +274,25 @@ def get_chitiet_ravao_by_criteria_service(Ma_CT=None, Mssv=None, BienSoXe=None, 
             query = query.filter(ChiTietRaVao.BienSoXe.ilike(f"%{BienSoXe}%"))
         if Ma_BaiXe:
             query = query.filter_by(Ma_BaiXe=Ma_BaiXe)
+        
+        # Tìm kiếm theo TG_Vao với cả thời gian đầy đủ và chỉ ngày
         if TG_Vao:
-            query = query.filter(func.date(ChiTietRaVao.TG_Vao) == TG_Vao)
+            if len(TG_Vao) == 10:  # Định dạng yyyy-mm-dd
+                query = query.filter(func.date(ChiTietRaVao.TG_Vao) == TG_Vao)
+            else:  # Định dạng yyyy-mm-dd hh:mm:ss
+                query = query.filter(ChiTietRaVao.TG_Vao == TG_Vao)
+        
+        # Tìm kiếm theo TG_Ra với cả thời gian đầy đủ và chỉ ngày
         if TG_Ra:
-            query = query.filter(func.date(ChiTietRaVao.TG_Ra) == TG_Ra)
+            if len(TG_Ra) == 10:  # Định dạng yyyy-mm-dd
+                query = query.filter(func.date(ChiTietRaVao.TG_Ra) == TG_Ra)
+            else:  # Định dạng yyyy-mm-dd hh:mm:ss
+                query = query.filter(ChiTietRaVao.TG_Ra == TG_Ra)
+
+        if LoaiXe:
+            query = query.filter(ChiTietRaVao.LoaiXe.ilike(f"%{LoaiXe}%"))
+        if AnhBienSo:
+            query = query.filter(ChiTietRaVao.AnhBienSo == AnhBienSo)
 
         # Execute the query to find matching records
         chitiet_ravao_list = query.all()
@@ -128,7 +306,6 @@ def get_chitiet_ravao_by_criteria_service(Ma_CT=None, Mssv=None, BienSoXe=None, 
         return result, 200  # Return the serialized data and status code
     except Exception as e:
         return {"error": str(e)}, 400  # Return an error message and status code if something goes wrong
-
 
 
 # Service: Update ChiTietRaVao

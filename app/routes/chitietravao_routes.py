@@ -29,15 +29,6 @@ def get_all_chitiet_ravao():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# Route: Get ChiTietRaVao by Ma_CT
-# @chitiet_ravao_routes.route("/chitietravao/<Ma_CT>", methods=['GET'])
-# def get_chitiet_ravao_by_id(Ma_CT):
-#     try:
-#         response_message, status_code = get_chitiet_ravao_by_id_service(Ma_CT)
-#         return jsonify(response_message), status_code
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 400
-
 # Route: Search ChiTietRaVao
 @chitiet_ravao_routes.route("/chitietravao/search", methods=['GET'])
 def search_chitiet_ravao():
@@ -53,7 +44,8 @@ def search_chitiet_ravao():
         Ma_BaiXe = request.args.get('Ma_BaiXe')
         TG_Vao = request.args.get('TG_Vao')
         TG_Ra = request.args.get('TG_Ra')
-
+        AnhBienSo = request.args.get('AnhBienSo')
+        LoaiXe = request.args.get('LoaiXe')
         # Add any other parameters that are relevant for searching
 
         # Call the service function to search for ChiTietRaVao records
@@ -63,16 +55,16 @@ def search_chitiet_ravao():
             BienSoXe=BienSoXe,
             Ma_BaiXe=Ma_BaiXe,
             TG_Vao=TG_Vao,
-            TG_Ra=TG_Ra
+            TG_Ra=TG_Ra,
+            AnhBienSo=AnhBienSo,
+            LoaiXe=LoaiXe
             # Add any other parameters as needed
-        )
-        
+        )      
         # Return the response as JSON with the appropriate status code
         return jsonify(response_message), status_code
     except Exception as e:
         # If an unexpected error occurs, return an error message and a 400 status code
         return jsonify({"error": str(e)}), 400
-
 
 # Route: Update ChiTietRaVao by Ma_CT
 @chitiet_ravao_routes.route("/chitietravao/update/<Ma_CT>", methods=['PUT'])

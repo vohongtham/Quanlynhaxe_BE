@@ -19,9 +19,25 @@ def add_sinhvien():
     """
     try:
         response_message, status_code = add_sv_service(request)  # Pass the request to the service function
+        print("Response Message:", response_message)  # Debugging line
+        print("Status Code:", status_code)  # Debugging line
         return jsonify(response_message), status_code
     except Exception as e:
+        print("Route-level Exception:", str(e))  # Debugging line
         return jsonify({"error": str(e)}), 400
+    
+# def add_sinhvien():
+#     """
+#     Route to add a new student.
+#     Expects JSON data in the request body.
+#     Returns a success message or an error.
+#     """
+#     try:
+#         response_message, status_code = add_sv_service(request)  # Pass the request to the service function
+#         return jsonify(response_message), status_code
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 400
+
     
 # Route search sinh vien
 @sv_routes.route("/sv/search", methods=['GET'])

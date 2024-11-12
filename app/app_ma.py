@@ -1,25 +1,4 @@
 from .database import ma
-
-# class UsersSchema(ma.Schema):
-#     class Meta:
-#         fields = ('UserID', 'Username', 'Password', 'ChucVu')
-
-# # class SinhvienSchema(ma.Schema):
-# #     class Meta:
-# #         fields = ('Mssv', 'Ten', 'Email', 'Phone', 'Khoa')
-
-# class XeSchema(ma.Schema):
-#     class Meta:
-#         fields = ('ID_xe', 'Mssv', 'Biensoxe', 'Tenxe', 'Loaixe')
-
-# class BaixeSchema(ma.Schema):
-#     class Meta:
-#         fields = ('ID_vitri', 'Vitri', 'Trangthai', 'UserID')
-
-# class LichsuSchema(ma.Schema):
-#     class Meta:
-#         fields = ('RecordID', 'Mssv', 'ID_xe', 'ID_vitri', 'TG_vao', 'TG_ra', 'UserID')
-
 from marshmallow import Schema, fields
 
 class PhanquyenSchema(Schema):
@@ -33,8 +12,9 @@ class UsersSchema(Schema):
     Password = fields.Str(required=True, load_only=True)
     GioiTinh = fields.Str(required=True)
     NgaySinh = fields.Str(required=True)
-    Ma_BaiXe = fields.Str(required=True)  # Mã bãi xe mà người dùng quản lý hoặc liên quan
+    # Ma_BaiXe = fields.Str(required=True)  # Mã bãi xe mà người dùng quản lý hoặc liên quan
     Ma_Quyen = fields.Str(required=True)
+    SDT = fields.Str(allow_none=True)
 
 
 # Schema for Sinhvien
@@ -83,6 +63,14 @@ class BaixeSchema(Schema):
     Ma_BaiXe = fields.Str(required=True)
     Ma_DV = fields.Str(required=True)
     Ten_BaiXe = fields.Str(required=True)
+    So_ViTriDaDung = fields.Int(required=True)
+    So_ViTriTong = fields.Int(required=True)
+    
+    # Custom field to include the 'vi_tri_trong' property
+    vi_tri_trong = fields.Method("get_vi_tri_trong")
+
+    def get_vi_tri_trong(self, obj):
+        return obj.vi_tri_trong  # Call the vi_tri_trong property
 
 # Schema for ChiTietRaVao
 class ChiTietRaVaoSchema(Schema):
@@ -93,6 +81,11 @@ class ChiTietRaVaoSchema(Schema):
     TG_Vao = fields.DateTime(required=True)
     TG_Ra = fields.DateTime(allow_none=True)
     Gia = fields.Float(required=True)
+    AnhBienSo = fields.Str(allow_none=True)  # Thêm trường AnhBienSo
+    LoaiXe = fields.Str(required=True)  # Liên kết với bảng LoaiXe
 
 
-
+# Schema for LoaiXe
+class LoaiXeSchema(Schema):
+    LoaiXe = fields.Str(required=True)  # Dùng LoaiXe làm khóa chính
+    Gia = fields.Float(required=True)  # Giá tiền tương ứng với loại xe

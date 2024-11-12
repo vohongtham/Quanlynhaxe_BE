@@ -1,6 +1,6 @@
 from app.database import db
 from app.utils.utils import generate  # Assuming generate() is a function for generating unique IDs if needed
-from app.model import Xe
+from app.model import Xe, ChiTietRaVao
 from flask import request, jsonify
 from app.app_ma import XeSchema
 
@@ -25,10 +25,10 @@ def add_xe_service(request):
 
         # Check if the BienSoXe or SoKhungXe already exists
         if Xe.query.filter_by(BienSoXe=BienSoXe).first():
-            return {"error": "Xe with this BienSoXe already exists."}, 400
+            return {"error": " Biển số xe đã tồn tại ."}, 400
 
         if Xe.query.filter_by(SoKhungXe=SoKhungXe).first():
-            return {"error": "Xe with this SoKhungXe already exists."}, 400
+            return {"error": "Số khung xe đã tồn tại."}, 400
 
         # Create and add the new vehicle
         new_xe = Xe(
@@ -97,7 +97,6 @@ def get_xe_by_criteria_service(**criteria):
         return {"error": str(e)}, 400
 
 
-
 def get_all_xes_service():
     try:
         xes = Xe.query.all()
@@ -144,7 +143,24 @@ def delete_xe_service(BienSoXe):
     except Exception as e:
         db.session.rollback()
         return {"error": str(e)}, 400
-    
+
+# def delete_xe_service(BienSoXe):
+#     try:
+#         # Step 1: Delete all related entries in ChiTietRaVao
+#         ChiTietRaVao.query.filter_by(BienSoXe=BienSoXe).delete()
+
+#         # Step 2: Delete the vehicle from Xe table
+#         vehicle = Xe.query.filter_by(BienSoXe=BienSoXe).first()
+#         if vehicle:
+#             db.session.delete(vehicle)
+#             db.session.commit()
+#             return {"message": "Vehicle deleted successfully."}
+#         else:
+#             return {"error": "Vehicle not found."}
+#     except Exception as e:
+#         db.session.rollback()  # Rollback the session in case of an error
+#         return {"error": str(e)}, 400
+
 
 def delete_all_xes_service():
     try:

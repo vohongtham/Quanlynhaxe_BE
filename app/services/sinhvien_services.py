@@ -13,6 +13,52 @@ sinhvien_schema = SinhvienSchema()
 sinhviens_schema = SinhvienSchema(many=True)
 
 # Add sinh viên
+# def add_sv_service(request):
+#     try:
+#         # Retrieve data from the request
+#         data = request.get_json()
+#         Mssv = data.get('Mssv')
+#         Ten_SV = data.get('Ten_SV')
+#         Ma_Lop = data.get('Ma_Lop')
+#         Email = data.get('Email')
+#         Password = data.get('Password')
+#         NgaySinh = data.get('NgaySinh')
+#         GioiTinh = data.get('GioiTinh')
+#         SDT = data.get('SDT')
+
+#         # Check if the email is already in use
+#         existing_student = Sinhvien.query.filter_by(Email=Email).first()
+#         if existing_student:
+#             return {"error": "Email đã được sử dụng"}, 400
+
+#         # Hash the password using bcrypt
+#         hashed_password = bcrypt.generate_password_hash(Password).decode('utf-8')
+
+#         print("Hashed Password:", hashed_password)
+
+#         # Create a new Sinhvien instance with the hashed password
+#         new_sinhvien = Sinhvien(
+#             Mssv=Mssv,
+#             Ten_SV=Ten_SV,
+#             Ma_Lop=Ma_Lop,
+#             Email=Email,
+#             Password=hashed_password,
+#             NgaySinh=NgaySinh,
+#             GioiTinh=GioiTinh,
+#             Ma_Quyen='MQSV',  # Default student role
+#             SDT=SDT
+#         )
+        
+#         # Add the new student to the database
+#         db.session.add(new_sinhvien)
+#         db.session.commit()
+
+#         return {"message": "Add success!"}, 201  # Return a success message and status code
+
+#     except Exception as e:
+#         db.session.rollback()
+#         return {"error": str(e)}, 400  # Return an error message and status code
+
 def add_sv_service(request):
     try:
         # Retrieve data from the request
@@ -27,9 +73,12 @@ def add_sv_service(request):
         SDT = data.get('SDT')
 
         # Check if the email is already in use
-        existing_student = Sinhvien.query.filter_by(Email=Email).first()
-        if existing_student:
+        if Sinhvien.query.filter_by(Email=Email).first():
             return {"error": "Email đã được sử dụng"}, 400
+
+        # Check if the Mssv is already in use
+        if Sinhvien.query.filter_by(Mssv=Mssv).first():
+            return {"error": "Mssv đã tồn tại"}, 400
 
         # Hash the password using bcrypt
         hashed_password = bcrypt.generate_password_hash(Password).decode('utf-8')
@@ -60,6 +109,7 @@ def add_sv_service(request):
         return {"error": str(e)}, 400  # Return an error message and status code
 
 
+
 #Get thong tin sinh vien 
 def get_sv_by_criteria_service(Mssv=None, Ten_SV=None, Ma_Lop=None, Email=None, NgaySinh=None, GioiTinh=None, SDT=None):
     """
@@ -83,6 +133,8 @@ def get_sv_by_criteria_service(Mssv=None, Ten_SV=None, Ma_Lop=None, Email=None, 
             query = query.filter(Sinhvien.GioiTinh.ilike(f"%{GioiTinh}%"))
         if SDT:
             query = query.filter(Sinhvien.SDT.ilike(f"%{SDT}"))
+        if Ma_Lop:
+            query = query.filter(Sinhvien.Ma_Lop.ilike(f"%{Ma_Lop}"))
 
         # Execute the query to find the students
         sinhviens = query.all()
@@ -108,31 +160,6 @@ def get_all_svs_service():
         return result, 200  # Return the serialized data and status code
     except Exception as e:
         return {"error": str(e)}, 400  # Return an error message and status code
-
-# Update sinh vien
-# def update_sv_service(Mssv, request):
-#     try:
-#         sinhvien = Sinhvien.query.filter_by(Mssv=Mssv).first()
-
-#         if not sinhvien:
-#             return {"error": "Student not found"}, 404
-
-#         data = request.get_json()
-#         sinhvien.Ten_SV = data.get('Ten_SV', sinhvien.Ten_SV)
-#         sinhvien.Ma_Lop = data.get('Ma_Lop', sinhvien.Ma_Lop)
-#         sinhvien.Email = data.get('Email', sinhvien.Email)
-#         if 'Password' in data:
-#             # Hash the new password using bcrypt
-#             sinhvien.Password = bcrypt.generate_password_hash(data['Password']).decode('utf-8')
-#         sinhvien.NgaySinh = data.get('NgaySinh', sinhvien.NgaySinh)
-#         sinhvien.GioiTinh = data.get('GioiTinh', sinhvien.GioiTinh)
-#         sinhvien.SDT = data.get('SDT', sinhvien.SDT)
-
-#         db.session.commit()
-#         return {"message": "Update success!"}, 200
-#     except Exception as e:
-#         db.session.rollback()
-#         return {"error": str(e)}, 400
 
     
 # Delete 1 sinh vien 

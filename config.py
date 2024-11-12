@@ -7,6 +7,7 @@
 
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,22 +18,15 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
 
+    # Set JWT token expiration to 24 hours
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
 
-# import os
-# from dotenv import load_dotenv
+    # Cấu hình gửi email
+    MAIL_SERVER = os.getenv('MAIL_SERVER')
+    MAIL_PORT = os.getenv('MAIL_PORT')
+    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS') == 'True'  # Đảm bảo là kiểu boolean
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
 
-# # Load environment variables from .env file
-# load_dotenv()
-
-# class Config:
-#     # Load SECRET_KEY from .env file, or set a default value
-#     SECRET_KEY = os.getenv('KEY', 'default_secret_key')
-
-#     # Load database URL from .env file
-#     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
-
-#     # Disable SQLALCHEMY_TRACK_MODIFICATIONS to avoid overhead
-#     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-#     # Load JWT_SECRET_KEY from .env file, or use a default value
-#     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'default_jwt_secret')
+    # Thiết lập địa chỉ gửi mặc định
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_USERNAME')  # Hoặc bạn có thể dùng trực tiếp 'nhaxe9442@gmail.com'
